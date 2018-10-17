@@ -1,0 +1,8 @@
+INTSTYLE=ise
+INFILE=C:\Unief antwerpen\computerarchitectuur\juist project latest versie\PROJECT\uart6_atlys.ncd
+OUTFILE=C:\Unief antwerpen\computerarchitectuur\juist project latest versie\PROJECT\uart6_atlys.bit
+FAMILY=Spartan6
+PART=xc6slx45-3csg324
+WORKINGDIR=C:\Unief antwerpen\computerarchitectuur\juist project latest versie\PROJECT
+LICENSE=WebPack
+USER_INFO=211156864_0_0_651

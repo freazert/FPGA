@@ -1,0 +1,97 @@
+
+
+
+
+; test program 
+
+
+; register remaming
+NAMEREG s8, inputb		;input buffer
+NAMEREG s9,  wheelpstn
+
+; declaration of inputs  
+CONSTANT switches , 02
+CONSTANT buffer, 00
+CONSTANT rx , 01
+CONSTANT clk_ms  ,  07
+
+; declaration of outputs  
+CONSTANT tx , 01
+CONSTANT leds , 02
+
+CONSTANT servo_1, 03
+CONSTANT servo_2, 04
+
+
+
+cold_start:        
+	load 	  inputb, 00
+	load 	  s0,00
+	load 	  wheelpstn, 01111111'b
+	
+;
+
+mainlp: 
+	call 	 rdbuff				; getInput
+	compare   inputb, 7A        ; z wordt ingedrukt
+	jump 	  z,     mtrfrwrd   
+	
+	compare   inputb, 73        ;s wordt ingedrukt
+	jump 	  z,     mtrbck		
+	
+	compare   inputb, 70		;p -> goto pauzeren 
+	jump 	  z, mtrbrk
+	
+	jump movepstn
+	;jump	  rddata			   ; Wachten op een '$' teken
+	
+	
+;-----------------------------------------------------
+
+	
+
+mtrfrwrd:
+	add wheelpstn, 00000010'b				;versnellen
+	jump movepstn
+	
+	
+mtrbck:
+	sub wheelpstn, 00000010'b				;vertragen
+	jump movepstn
+	
+mtrbrk:
+	load 	  wheelpstn, 11111101'b			;neutrale positie
+	jump movepstn
+
+movepstn:
+	
+	output wheelpstn, tx;				;output positie
+	output wheelpstn, servo_1;			;Stuur binaire data naar servo
+	output wheelpstn, servo_2;
+	output wheelpstn, leds;             ; toon verandering op leds
+	jump mainlp
+	
+
+
+
+rdbuff:
+	input	  sA, buffer   			; read buffer 00001000 their is something in the buffer
+	and 	  sA, 00000100'b 		;if buffer is full (wait)
+	compare   sA, 00000100'b
+	jump	  z, mainlp
+
+bfrempty:
+					;wacht tot er iets in de buffer zit vooraleer verder gegaan kan worden.
+	input 	  sB, buffer
+	and 	  sB, 00001000'b
+	compare   sB, 00001000'b;
+	
+	jump 	  nz, bfrempty
+	
+	
+	input 	inputb, rx
+	
+	return
+
+
+

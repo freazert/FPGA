@@ -1,0 +1,252 @@
+
+
+
+
+; test program 
+
+
+; register remaming
+inputb reg s8		;input buffer
+
+
+; declaration of inputs  
+switches equ 0x02
+buffer equ 0x00
+rx equ 0x01
+clk_ms equ 0x07
+
+; declaration of outputs  
+tx equ 0x01
+leds equ 0x02
+
+
+
+
+cold_start:        
+	load 	  inputb, #0x00
+	load 	  se,#0x00
+	load 	  s0,#0x00
+	
+;
+
+mainlp:             
+	
+	load 	  s1, #200
+	output 	  s1 , tx;
+	jump end;
+	
+	;jump	  rddata			   ; Wachten op een '$' teken
+	
+	
+;-----------------------------------------------------
+
+rddata:
+	compare   inputb, #0x24			;als een commando onderbroken is door een $ teken kan er directe overgegaan worden met een ander commando
+	jump 	  z, strtcmd			
+	call 	  rdbuff				;lees een karakter in
+	compare   inputb, #0x24			
+	jump 	  z, strtcmd			;Wanneer het een dollar teken is wordt er door gegaan, anders wordt er gewacht.
+	
+	jump 	  mainlp
+	
+;------------------------------------------------------
+	
+strtcmd:
+	
+	call 	  rdbuff				;Wacht tot er een teken binnenkomt
+	compare   inputb, #0x41			;vergelijk met een 'A'
+	jump 	  z, acmd
+	compare   inputb, #0x53			;vergelijk met een 'S'
+	jump 	  z, scmd
+	compare   inputb, #0x45			;vergelijk met een 'E'
+	jump 	  z, ecmd
+	jump 	  mainlp
+	
+;----------------------------------------------------
+
+acmd:
+	
+	call 	  rdbuff				; Wacht tot er een teken binnenkomt
+	compare   inputb, #0x43			; vergelijk met een 'C'
+	jump 	  nz, mainlp
+				; breek commando af
+	call 	  rdbuff				;Wacht tot er een teken binnenkomt
+	compare   inputb, #0x43			;vergelijk met een 'C'
+	jump 	  nz, mainlp
+	call 	  rdbuff
+	compare   inputb, #0x5f			;Vergelijk met een '_'
+	jump 	  z, _cmd
+	compare   inputb, #0x52			;Vergelijk met een 'R'
+	jump 	  z, rcmd
+	jump  	  mainlp
+
+scmd:
+	
+													;commando's die starten met een 's'
+	load 	  inputb, #0x00
+	call 	  rdbuff
+	jump  	  mainlp
+	
+ecmd:
+	
+	load 	  inputb, #0x00			; commando's die starten met een 'e'
+	call 	  rdbuff
+	jump  	  mainlp
+;---------------------------------------------
+
+rcmd:
+
+	jump 	  mainlp
+
+
+_cmd:
+	load 	sf, #0x00					;wacht op 2 '_' tekens
+
+_cmd2:
+	call 	rdbuff
+	compare inputb, #0x5f
+	jump 	nz, mainlp
+	add 	sf, #0x01
+	compare sf, #0x02
+	jump 	z, cmddata1
+	jump 	_cmd2
+	
+;---------------------------------------------
+
+cmddata1:	
+	load 	s1, #0x00
+	call 	rdbuff
+	compare inputb, #0x2d
+	jump 	z, cmddata1neg
+	call 	nxtknmbr
+	load  	s2, inputb
+	jump 	cmddata2
+	
+cmddata1neg:
+	call 	nxtknmbr
+	load  	s1, #0x01
+	jump 	cmddata2
+	
+	
+cmddata2:
+	load    s4, #0x00
+	call 	rdbuff
+	compare inputb, #0x2d
+	jump 	z, cmddata2neg
+	call 	nxtknmbr
+	load    s4, inputb
+
+cmddata2neg:
+	call 	nxtknmbr
+	load  	s3, #0x01
+	jump 	cmddata2
+	
+cmddata3:
+	load    s5, #0x00
+	call 	rdbuff
+	compare inputb, #0x2d
+	jump 	z, cmddata3neg
+	call 	nxtknmbr
+	load  	s5, inputb
+	jump 	snddata
+	
+cmddata3neg:
+	call 	nxtknmbr
+	load  	s6, #0x01
+	jump 	snddata
+
+snddata:
+	output s1, tx
+	jump mainlp
+	
+;---------------------------------------------
+delms:              
+	input     s0, clk_ms
+delmslp:         
+	input     s1, clk_ms
+	compare   s0, s1
+	jump      z, delmslp
+	return       
+;---------------------------------------------
+del250ms:           
+	load      s2, #0x05
+
+del250mslp:     
+	call      delms
+	add       s2, #0x01
+	jump      nz, del250mslp
+	return    
+
+
+	
+	; Routine to convert binary value in the range 00 to 63 hex provided in register
+	; 's0' into the binary coded decimal (BCD) equivalent in the range 0 to 99 in
+	; registers 's1' and 's0'.
+	;
+	;   Example                        s0 = 24 hex   -->    s1 = 3
+	;   24 hex = 36 decimal                                 s0 = 6
+	;
+	;
+byte_to_decimal: 	
+	load s1, #0x00                     ;clear 'tens'
+	
+b_to_d_loop:   
+	compare s0, #10                ;if 'units' is less than 10
+	return c                        ;  then conversion complete
+	add s1, #1                     ;otherwise increment number of 'tens'
+	sub s0, #10                    ; and subtract 10 from 'units'
+	jump b_to_d_loop
+	
+	
+;------------------------------------------------
+rdbuff:
+	input	  sa, buffer   			; read buffer 00001000 their is something in the buffer
+	and 	  sa, #0b00000100 		;if buffer is full (wait)
+	compare   sa, #0b00000100
+	
+	jump	  z, mainlp
+
+bfrempty:
+
+	call      del250ms				;wacht tot er iets in de buffer zit vooraleer verder gegaan kan worden.
+	input 	  sb, buffer
+	and 	  sb, #0b00001000
+	compare   sb, #0b00001000;
+	
+	jump 	  nz, bfrempty
+	
+	
+	input 	inputb, rx
+	
+	return
+
+nxtknmbr:
+	call 	rdbuff
+	compare inputb, #0x2f
+	jump	c, mainlp
+	compare inputb, #0x3a
+	jump	nc, mainlp
+	return 
+
+nextstap:
+	add  se, #1
+	output se, tx
+	return 
+	
+load1:
+	call nextstap
+	load 	s1	  , #1
+	output s1 , tx;
+	return 
+;-----------------------------------------------------
+prsarc:
+	
+	jump mainlp
+
+	
+	
+end:
+	
+
+
+

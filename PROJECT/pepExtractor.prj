@@ -1,0 +1,8 @@
+work	"Servo.vhd"
+work	"clkdivider.vhd"
+work	"kcpsm6.vhd"
+work	"testprg.vhd"
+work	"timer.vhd"
+work	"uart6_atlys.vhd"
+work	"uart_rx6.vhd"
+work	"uart_tx6.vhd"

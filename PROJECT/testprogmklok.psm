@@ -1,0 +1,125 @@
+
+
+
+
+; test program 
+
+
+; register remaming
+NAMEREG s3, counter
+NAMEREG s4, secb		;binair value of seconds
+NAMEREG s9, minutb		;binair value of minutes
+NAMEREG s8, inputb		;input buffer
+
+; declaration of inputs  
+CONSTANT switches , 02
+CONSTANT buffer, 00
+CONSTANT rx , 01
+CONSTANT clk_ms  ,  07
+
+; declaration of outputs  
+CONSTANT tx , 01
+CONSTANT leds , 02
+
+
+ 
+
+cold_start:         load      counter, 00          ; clear all time values
+                    load      secb, 00
+					load 	  minutb, 00 
+					load 	  s6, 20			   ; ascii code for SPACE
+					load 	  s7, 0d			   ; ascii code for CR 
+;
+
+mainlp:             call      del250ms			   ; WAIT FOR 250ms
+                    add       counter,01           ; INCREMENT S3  REGISTER
+                    compare	  counter, 04			; correction to have exact 1 second!
+ 					jump      NZ, send_out    
+					load      counter, 00
+					add       secb, 01      	   ; INCREMENT S4 IF REGISTER S3=4
+                    compare   secb, 60'd		   ; IF SECB=60 THEN SECB=0
+					jump      nz, send_out
+					load      secb, 00
+					add		  minutb, 01
+					compare	  minutb, 60'd
+					jump 	  nz, send_out
+					load 	  minutb, 00
+					jump	  send_out
+					
+send_out:			;output    secb, tx             ; SEND s4 TO THE UART
+
+					load 	  s0, minutb			
+					call 	  byte_to_decimal
+					add 	  s1,30 			; asci code voor een cijfer
+					add 	  s0,30 
+					output	  s1, tx			; SEND minutb to the UART
+					output	  s0, tx
+					output    s6, tx			   ; SEND SPACE TO UART
+					
+					load 	  s0,secb
+					call      byte_to_decimal
+					add		  s1, 30			   ; ASCII CODE "0" =30HEX
+					add		  s0, 30
+				    output    s1, tx               ; SEND TENTHS OF SEC TO THE UART
+					output    s0, tx			   ; SEND UNIT OF SEC TO THE UART
+					output    s6, tx			   ; SEND SPACE TO UART
+					
+					
+					input	  sA, buffer
+					output 	  sA, tx;
+					
+					call 	  prcsinp
+					
+					;input     s5, switches         ; READ SWITCHES
+					;output    s5, tx               ; SEND TO THE UART
+					;output    s7, tx			   ; SEND CR TO UART
+                    
+												   ;output    s8, leds			   ; COPY TO THE LEDS
+                    jump      mainlp
+
+;------------------------------------------------
+prcsinp:
+					;output	  s6, tx
+					input 	  inputb, rx
+					;compare   inputb, 61
+					;output	  inputb, tx   			   ;Read input from keyboard to uart
+					return
+					
+					
+					
+;---------------------------------------------
+delms:              input     s0, clk_ms
+   delmslp:         input     s1, clk_ms
+                    compare   s0, s1
+                    jump      z, delmslp
+                    return       
+;---------------------------------------------
+del250ms:           load      s2, 05
+    del250mslp:     call      delms
+                    add       s2, 01
+                    jump      nz, del250mslp
+                    return    
+
+
+					
+                    ; Routine to convert binary value in the range 00 to 63 hex provided in register
+                    ; 's0' into the binary coded decimal (BCD) equivalent in the range 0 to 99 in
+                    ; registers 's1' and 's0'.
+                    ;
+                    ;   Example                        s0 = 24 hex   -->    s1 = 3
+                    ;   24 hex = 36 decimal                                 s0 = 6
+                    ;
+                    ;
+byte_to_decimal: 	LOAD s1, 00                     ;clear 'tens'
+     b_to_d_loop:   COMPARE s0, 10'd                ;if 'units' is less than 10
+                    RETURN C                        ;  then conversion complete
+                    ADD s1, 1'd                     ;otherwise increment number of 'tens'
+                    SUB s0, 10'd                    ; and subtract 10 from 'units'
+                    JUMP b_to_d_loop
+
+					
+					
+					
+					
+
+

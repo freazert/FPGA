@@ -1,0 +1,58 @@
+            ; test program
+            ; register remaming
+            NAMEREG s8, inputb         ;input buffer
+            NAMEREG s9, wheelpstn
+            ; declaration of inputs
+            CONSTANT switches, 02
+            CONSTANT buffer, 00
+            CONSTANT rx, 01
+            CONSTANT clk_ms, 07
+            ; declaration of outputs
+            CONSTANT tx, 01
+            CONSTANT leds, 02
+            CONSTANT servo_1, 03
+            CONSTANT servo_2, 04
+cold_start: 
+            LOAD inputb, 00
+            LOAD s0, 00
+            LOAD wheelpstn, 01111111'b
+            ;
+    mainlp: 
+            CALL rdbuff                ; getInput
+            COMPARE inputb, 7A         ; z wordt ingedrukt
+            JUMP Z, mtrfrwrd
+            COMPARE inputb, 73         ;s wordt ingedrukt
+            JUMP Z, mtrbck
+            COMPARE inputb, 70         ;p -> goto pauzeren
+            JUMP Z, mtrbrk
+            JUMP movepstn
+            ;jump   rddata      ; Wachten op een '$' teken
+            ;-----------------------------------------------------
+  mtrfrwrd: 
+            ADD wheelpstn, 00000010'b  ;versnellen
+            JUMP movepstn
+    mtrbck: 
+            SUB wheelpstn, 00000010'b  ;vertragen
+            JUMP movepstn
+    mtrbrk: 
+            LOAD wheelpstn, 11111101'b ;neutrale positie
+            JUMP movepstn
+  movepstn: 
+            OUTPUT wheelpstn, tx       ;    ;output positie
+            OUTPUT wheelpstn, servo_1  ;   ;Stuur binaire data naar servo
+            OUTPUT wheelpstn, servo_2  ;
+            OUTPUT wheelpstn, leds     ;             ; toon verandering op leds
+            JUMP mainlp
+    rdbuff: 
+            INPUT sA, buffer           ; read buffer 00001000 their is something in the buffer
+            AND sA, 00000100'b         ;if buffer is full (wait)
+            COMPARE sA, 00000100'b
+            JUMP Z, mainlp
+  bfrempty: 
+            ;wacht tot er iets in de buffer zit vooraleer verder gegaan kan worden.
+            INPUT sB, buffer
+            AND sB, 00001000'b
+            COMPARE sB, 00001000'b     ;
+            JUMP NZ, bfrempty
+            INPUT inputb, rx
+            RETURN 

@@ -1,0 +1,387 @@
+﻿;dzadz
+
+; register remaming
+NAMEREG s8, inputb		;input buffer
+
+
+; declaration of inputs  
+CONSTANT switches , 02
+CONSTANT buffer, 00
+CONSTANT rx , 01
+CONSTANT clk_ms  ,  07
+
+; declaration of outputs  
+CONSTANT tx , 01
+CONSTANT leds , 02
+
+CONSTANT servo_1, 03
+CONSTANT servo_2, 04
+
+
+
+cold_start:        
+	load 	  inputb, 00
+	load 	  sE,00
+	load 	  s9, 01111101'b		; zet op neutraal 125
+	load  	  sB, 01111101'b		; zet op neutraal 125
+	output	  s9,servo_1
+	output	  sB,servo_2
+
+mainlp: 	
+	jump	  rddata			   ; Wachten op een '$' teken (start van inlezen)
+	
+	
+;--------------------AUTO---------------------------
+
+cmdcar:
+	output s5,tx
+	compare S5, 30'd              ;Controleren of de waarde onder 30
+	JUMP	C, stop						
+	jump 	nz, move
+
+stop:
+	call checker
+	load 	  s9, 01111101'b			; neutrale positie
+	load 	  sB, 01111101'b			;Neutrale positie
+	jump      send_data
+
+move:
+	compare  sD , 01  ;     Achteruit rijden (checken of x - is)
+	jump 	 z ,  backwards
+	jump 	 forward
+	
+backwards: 
+	SR0 S5							;delen door 2 zodat de waarde van 0-124. 
+	SR0 S5							;delen door 2 zodat de waarde van 0-66 is. Zodat de motor niet te snel rijdt (geen 255)
+	load s9, 01111101'b				;laad default waarde 125
+	load sB, 01111101'b				;laad default waarde 125
+	sub s9, s5						;verminder met X waarde
+	sub sB, s5						;verminder met X waarde
+	jump calculate_directionB
+
+forward:
+	SR0 s5
+	SR0 s5
+	add s5,  01111101'b				; delende door 4 en 125 toevoegen. Zodat de waarde van 126-255 gaat. Pulse is dan tussen 1,5 en 2 ms
+	
+	load s9, s5
+	load sB, s5
+	jump calculate_directionF
+
+calculate_directionF:
+	compare sE, 01					; controleren of de y positief of negatief is.
+	jump    z, left_wheel			; linker wiel sneller laten rijden
+	jump 	right_wheel				; rechter wiel sneller laten rijden
+
+calculate_directionB:
+	compare sE, 01					; controleren of de y positief of negatief is.
+	jump    z,  right_wheel			; rechter wiel sneller laten rijden	
+	jump 	left_wheel				; linker wiel sneller laten rijden
+	
+left_wheel:
+	;call checker;
+	sr0 s6
+	sr0 s6
+	Sr0 s6							;delen door 8
+	;add s9, s6						;voeg correctie toe aan wiel register
+	sub sB, s6
+	output s9,tx
+	output sB,tx
+	jump send_data
+
+right_wheel:						
+	;call checker;
+	sr0 s6
+	sr0 s6
+	Sr0	s6							;delen door 8
+	;add sB, s6						;voeg correctie toe aan wiel register.
+	sub s9, s6
+	output s9,tx
+	output sB,tx
+	jump send_data
+
+send_data:
+	output	  s9, servo_1 		   ;Zend data naar de servo(0x03)
+	output	  sB, servo_2			;Zend data naar de servo(0x04)
+	jump 	  mainlp
+	
+;-----------------------------------------------------
+rddata:
+	compare   inputb, 24			;als een commando onderbroken is door een $ teken kan er directe overgegaan worden met een ander commando
+	jump 	  z, strtcmd			
+	call 	  rdbuff				;lees een karakter in
+	compare   inputb, 24			
+	jump 	  z, strtcmd			;Wanneer het een dollar teken is wordt er door gegaan, anders wordt er gewacht.
+	
+	jump 	  mainlp
+	
+;------------------------------------------------------
+	
+strtcmd:
+	
+	call 	  rdbuff				;Wacht tot er een teken binnenkomt
+	compare   inputb, 41			;vergelijk met een 'A'
+	jump 	  z, acmd
+	jump 	  mainlp
+	
+;----------------------------------------------------
+
+acmd:
+
+	call 	  rdbuff				; Wacht tot er een teken binnenkomt
+	compare   inputb, 43			; vergelijk met een 'C'
+	jump 	  nz, mainlp
+				; breek commando af
+	call 	  rdbuff				;Wacht tot er een teken binnenkomt
+	compare   inputb, 43			;vergelijk met een 'C'
+	jump 	  nz, mainlp
+	call 	  rdbuff
+	compare   inputb, 5F			;Vergelijk met een '_'
+	jump 	  z, _cmd
+	jump  	  mainlp
+	
+;---------------------------------------------
+
+_cmd:
+	
+	load 	sF, 00					;wacht op 2 '_' tekens
+
+_cmd2:
+	
+	call 	rdbuff
+	compare inputb, 5F
+	jump 	nz, mainlp
+	add 	sF, 01
+	compare sF, 02
+	jump 	z, cmddata1
+	jump 	_cmd2
+	
+;---------------------------------------------
+
+cmddata1:					;INLEZEN VAN X
+	call 	rdbuff
+	compare inputb , 20		;kijk of ereen spatie passeerd	
+	jump 	nz 	, mainlp	
+		
+	load 	sD, 00			; zet de min van x op nul.
+	load 	sC, 00			; zet de counter op nul;
+	
+	call 	rdbuff			; wachten op de volgende input
+
+	compare inputb, 2D		; vergelijk de input met een min teken.
+	call 	z, cmddata1Neg
+	
+	call 	nxtknmbr
+	
+	load  	s0, inputb		
+	add 	sC, 01'd		; increment de counter
+	
+	call 	datachck1		;check op spatie of getal
+	load    s1, inputb
+	add 	sC, 01'd		;increment counter
+	
+	call 	datachck1		;check op spatie of getal
+	load 	s2, inputb
+	add 	sC, 01'd		;increment counter
+	
+	call 	rdbuff
+	compare inputb , 20		;kijken of er een spatie gepasseerd is, zoniet commando stoppen
+	jump 	nz , mainlp
+	jump	data1inrgstr
+
+cmddata2:					;INLEZEN VAN Y
+	load 	sE, 00			; reset negatieve waarde y.
+	load 	sC, 00
+	
+	call 	rdbuff
+	
+	compare inputb, 2D
+	call 	z, cmddata2Neg
+	
+	call 	nxtknmbr
+	
+	load  	s0, inputb	
+	add 	sC, 01'd
+	
+	call 	datachck2
+	load    s1, inputb
+	add 	sC, 01'd
+	
+	call 	datachck2 
+	load 	s2, inputb
+	add 	sC, 01'd
+	
+	call 	rdbuff
+	compare inputb , 20
+	jump 	nz , mainlp
+	jump	data2inrgstr
+		
+cmddata3:					;INLEZEN VAN Z
+	load 	sF, 00			; reset negatieve waarde z
+	load 	sC, 00
+	
+	call 	rdbuff
+	
+	compare inputb, 2D
+	call 	z,cmddata3Neg
+
+	call 	nxtknmbr
+	
+	load  	s0, inputb
+	add 	sC, 01'd
+	
+	call 	datachck3
+	load    s1, inputb
+	add 	sC, 01'd
+	
+	call 	datachck3 
+	load 	s2, inputb
+	add 	sC, 01'd
+
+	;Geen spatie nodig laatste nummer
+	jump	data3inrgstr
+
+;-------Negatieve waardes onthouden	--------------
+	
+cmddata1Neg:
+	load  sD, 01	;negatieve waarde x
+	call rdbuff;
+	return
+			
+cmddata2Neg:
+	load  sE, 01	;negatieve waarde y
+	call rdbuff;
+	return
+	
+cmddata3Neg:
+	load  sF, 01	;negatieve waarde z
+	call rdbuff;
+	return
+	
+;------ Checken of het nummer volledig is----------
+datachck1:
+	call 	rdbuff
+	compare inputb , 20		; een spatie is gepasseerd.
+	jump 	z , data1inrgstr 
+	call 	nxtknmbr
+	return
+	
+datachck2:
+	call 	rdbuff
+	compare inputb , 20		; een spatie is gepasseerd.
+	jump 	z , data2inrgstr 
+	call 	nxtknmbr
+	return
+	
+datachck3:
+	call 	rdbuff
+	compare inputb , 20				;een spatie is gepasseerd.
+	jump 	z , data3inrgstr  		
+	call 	nxtknmbr
+	return
+
+;------Nummer is volledig nu calculate-------------
+
+data1inrgstr : 				;calculate X
+	call 	 calcDate
+	load 	 s5, s4			;steken in de x waarde register
+	jump 	 cmddata2
+
+data2inrgstr : 				;calculate Y
+	call 	 calcDate
+	load 	 s6, s4			;steken in de y waarde register
+	jump 	 cmddata3
+	
+data3inrgstr :				;calculate Z
+	call 	 calcDate
+	load 	 s7, s4			; steken in de z waarde register
+	jump 	 snddata
+	
+;------Converteren van characters naar volledig getal-----------
+
+calcDate:
+	compare  sC, 01'd			;het getal bestaat uit één cijfer
+	call     z,  onenmbr	
+	compare  sC, 02'd			;het getal bestaat uit twee cijfers
+	call     z,  twonmbr
+	compare  sC, 03'd			;het getal bestaat uit drie cijfers
+	call     z,  threenmbr
+	return 
+
+onenmbr:
+	load     s4, s0				;steek het getal in de uitkomst buffer register
+	return
+	
+twonmbr:
+	load     s4, s1				; steek het tweede getal in de uitkomst buffer
+	load 	 s3, s0				; steek het eerste getal in de eenheden buffer 
+	call 	 lp10th				; gebruik de eenheden buffer voor een aantal tienheden toe te voegen
+	return 
+	
+threenmbr:
+	load     s4, s2				; steek het derde getal in de uitkomst buffer
+	load 	 s3, s1				; steek het tweede getal in de eenheden buffer
+	call 	 lp10th				; tel een aantal tienheden op
+	load     s3, s0;			; steek het eerste getal in de honderheden buffer
+	call 	 lp100th			; tel de honderheden op
+	return
+	
+lp10th:
+	sub 	s3, 01'd			;verminder de counter
+	add 	s4, 10'd			; voeg 10 toe aan de uitkomst buffer
+	compare s3, 00				; kijken of de counter 0 is, zoja stop met toevoegen
+	jump nz, lp10th
+	return
+
+lp100th:
+	sub 	s3, 01'd
+	add 	s4, 100'd			; voeg 100 toe aan de register
+	compare s3, 00
+	jump nz, lp10th
+	return
+
+
+;--------------------------------------------
+	
+snddata:
+	output s5, tx		;X WAARDE OUTPUTTE
+	output s6, tx		;Y WAARDE OUTPUTTE
+	output s7, tx		;Y WAARDE OUTPUTTE		
+	jump cmdcar
+
+	
+;------------------------------------------------
+rdbuff:
+	input	  sA, buffer   			; read buffer 00001000 their is something in the buffer
+	and 	  sA, 00000100'b 		;haal de belangerijke bit uit de flag
+	compare   sA, 00000100'b		;if buffer is full (exit)
+	jump	  z, mainlp
+
+bfrempty:
+	input 	  sA, buffer			
+	and 	  sA, 00001000'b		;haal de belangerijke bit uit de flag. Deze bit wordt gebruik om te kijken of er data input zit
+	compare   sA, 00001000'b;		; controleer of de bit een '1' is 
+	jump 	  nz, bfrempty
+	input 	inputb, rx
+	return
+
+nxtknmbr:
+	compare inputb, 2F				;kijken of het getal kleiner is dan 0(ASCII), zoja return mainlp
+	JUMP	C, mainlp				
+	compare inputb, 3A				;kijken of het groter is dan 10(ASCII), zoja return mainlp
+	JUMP	NC, mainlp
+	sub		inputb, 30				;convert ASCI -> dec
+	return 
+
+checker:
+	load 	s1	  , 1'd
+	output s1 , tx;
+	return 
+;-----------------------------------------------------
+
+	
+	
+end:
+	
+
+

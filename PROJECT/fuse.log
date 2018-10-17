@@ -1,0 +1,60 @@
+Running: C:\Xilinx\14.4\ISE_DS\ISE\bin\nt64\unwrapped\fuse.exe -intstyle ise -incremental -lib secureip -o C:/Users/Kris/Dropbox/FPGA/PROJECT/tb_servo_isim_beh.exe -prj C:/Users/Kris/Dropbox/FPGA/PROJECT/tb_servo_beh.prj work.tb_servo 
+ISim P.49d (signature 0x7708f090)
+Number of CPUs detected in this system: 4
+Turning on mult-threading, number of parallel sub-compilation jobs: 8 
+Determining compilation order of HDL files
+Parsing VHDL file "C:/Users/Kris/Dropbox/FPGA/PROJECT/uart_tx6.vhd" into library work
+Parsing VHDL file "C:/Users/Kris/Dropbox/FPGA/PROJECT/uart_rx6.vhd" into library work
+Parsing VHDL file "C:/Users/Kris/Dropbox/FPGA/PROJECT/timer.vhd" into library work
+Parsing VHDL file "C:/Users/Kris/Dropbox/FPGA/PROJECT/testprg.vhd" into library work
+Parsing VHDL file "C:/Users/Kris/Dropbox/FPGA/PROJECT/Servo.vhd" into library work
+Parsing VHDL file "C:/Users/Kris/Dropbox/FPGA/PROJECT/kcpsm6.vhd" into library work
+Parsing VHDL file "C:/Users/Kris/Dropbox/FPGA/PROJECT/clkdivider.vhd" into library work
+Parsing VHDL file "C:/Users/Kris/Dropbox/FPGA/PROJECT/uart6_atlys.vhd" into library work
+Parsing VHDL file "C:/Users/Kris/Dropbox/FPGA/PROJECT/tb_servo.vhd" into library work
+Starting static elaboration
+Completed static elaboration
+Compiling package standard
+Compiling package std_logic_1164
+Compiling package std_logic_arith
+Compiling package std_logic_unsigned
+Compiling package vcomponents
+Compiling package jtag_loader_pkg
+Compiling package numeric_std
+Compiling package textio
+Compiling package vital_timing
+Compiling package vital_primitives
+Compiling package vpkg
+Compiling architecture lut6_2_v of entity LUT6_2 [\LUT6_2("11111111111111111111010...]
+Compiling architecture fd_v of entity FD [\FD('0')\]
+Compiling architecture lut6_v of entity LUT6 [\LUT6("0000000000000000000000000...]
+Compiling architecture fdr_v of entity FDR [\FDR('0')\]
+Compiling architecture xorcy_v of entity XORCY [xorcy_default]
+Compiling architecture muxcy_v of entity MUXCY [muxcy_default]
+Compiling architecture fdre_v of entity FDRE [\FDRE('0')\]
+Compiling architecture ram32m_v of entity RAM32M [\RAM32M("00000000000000000000000...]
+Compiling architecture fds_v of entity FDS [\FDS('1')\]
+Compiling architecture ram64m_v of entity RAM64M [\RAM64M("00000000000000000000000...]
+Compiling architecture low_level_definition of entity kcpsm6 [\kcpsm6(('0','1','0','0','0','0'...]
+Compiling package std_logic_signed
+Compiling package std_logic_textio
+Compiling architecture ramb16bwer_v of entity RAMB16BWER [\RAMB16BWER(18,18,0,0,false,fals...]
+Compiling architecture bscan_spartan6_v of entity BSCAN_SPARTAN6 [\BSCAN_SPARTAN6(2)\]
+Compiling architecture bufg_v of entity BUFG [bufg_default]
+Compiling architecture behavioral of entity jtag_loader_6 [\jtag_loader_6(1,"S6",1,10,18,2,...]
+Compiling architecture low_level_definition of entity testprg [\testprg("S6",1,1)(1,2)\]
+Compiling architecture srl16e_v of entity SRL16E [\SRL16E("0000000000000000")(0,15...]
+Compiling architecture low_level_definition of entity uart_tx6 [uart_tx6_default]
+Compiling architecture low_level_definition of entity uart_rx6 [uart_rx6_default]
+Compiling architecture behavioral of entity clkdivider [\clkdivider(100000)\]
+Compiling architecture behavioral of entity clkdivider [\clkdivider(100000000)\]
+Compiling architecture behavioral of entity timer [timer_default]
+Compiling architecture behavioral of entity servo [servo_default]
+Compiling architecture behavioral of entity uart6_atlys [uart6_atlys_default]
+Compiling architecture behavior of entity tb_servo
+Time Resolution for simulation is 1ps.
+Waiting for 7 sub-compilation(s) to finish...
+Compiled 170 VHDL Units
+Built simulation executable C:/Users/Kris/Dropbox/FPGA/PROJECT/tb_servo_isim_beh.exe
+Fuse Memory Usage: 71436 KB
+Fuse CPU Usage: 6859 ms

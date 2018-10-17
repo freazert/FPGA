@@ -1,0 +1,262 @@
+; test program 
+
+
+; register remaming
+NAMEREG s8, inputb		;input buffer
+
+
+; declaration of inputs  
+CONSTANT switches , 02
+CONSTANT buffer, 00
+CONSTANT rx , 01
+CONSTANT clk_ms  ,  07
+
+; declaration of outputs  
+CONSTANT tx , 01
+CONSTANT leds , 02
+
+
+
+
+cold_start:        
+	load 	  inputb, 00
+	load 	  sE,00
+	load 	  s0,00
+	
+;
+
+mainlp:             
+	call      del250ms			   ; WAIT FOR 250ms
+	jump	  rddata			   ; Wachten op een '$' teken
+	
+	
+;-----------------------------------------------------
+
+rddata:
+	compare   inputb, 24			;als een commando onderbroken is door een $ teken kan er directe overgegaan worden met een ander commando
+	jump 	  z, strtcmd			
+	call 	  rdbuff				;lees een karakter in
+	compare   inputb, 24			
+	jump 	  z, strtcmd			;Wanneer het een dollar teken is wordt er door gegaan, anders wordt er gewacht.
+	
+	jump 	  mainlp
+	
+;------------------------------------------------------
+	
+strtcmd:
+	
+	call 	  rdbuff				;Wacht tot er een teken binnenkomt
+	compare   inputb, 41			;vergelijk met een 'A'
+	jump 	  z, acmd
+	compare   inputb, 53			;vergelijk met een 'S'
+	jump 	  z, scmd
+	compare   inputb, 45			;vergelijk met een 'E'
+	jump 	  z, ecmd
+	jump 	  mainlp
+	
+;----------------------------------------------------
+
+acmd:
+	
+	call 	  rdbuff				; Wacht tot er een teken binnenkomt
+	compare   inputb, 43			; vergelijk met een 'C'
+	jump 	  nz, mainlp
+				; breek commando af
+	call 	  rdbuff				;Wacht tot er een teken binnenkomt
+	compare   inputb, 43			;vergelijk met een 'C'
+	jump 	  nz, mainlp
+	call 	  rdbuff
+	compare   inputb, 5F			;Vergelijk met een '_'
+	jump 	  z, _cmd
+	compare   inputb, 52			;Vergelijk met een 'R'
+	jump 	  z, Rcmd
+	jump  	  mainlp
+
+scmd:
+	
+													;commando's die starten met een 's'
+	load 	  inputb, 00
+	call 	  rdbuff
+	jump  	  mainlp
+	
+ecmd:
+	
+	load 	  inputb, 00			; commando's die starten met een 'e'
+	call 	  rdbuff
+	jump  	  mainlp
+;---------------------------------------------
+
+Rcmd:
+
+	jump 	  mainlp
+
+
+_cmd:
+	load 	sF, 00					;wacht op 2 '_' tekens
+
+_cmd2:
+	call 	rdbuff
+	compare inputb, 5F
+	jump 	nz, mainlp
+	add 	sF, 01
+	compare sF, 02
+	jump 	z, cmddata1
+	jump 	_cmd2
+	
+;---------------------------------------------
+
+cmddata1:	
+										;Lees de drie getallen die na ACC__ komen. De getallen hier gaan van 300 tot 1300.
+	call 	rdbuff					;kijken of er een spatie is
+	compare	inputb,  20
+	jump 	nz, 	mainlp			
+	
+	load 	s1 ,00;					X opslagen in 4 verschillede registers
+	call 	rdbuff
+	compare inputb, 1'd				;nagaan of het eerste getal een één is
+	call 	z	  , load1	
+
+	call    nxtknmbr				;controleren of het een cijfer is
+	load 	s2,inputb				;in register steken
+
+	call    nxtknmbr
+	load 	s3, inputb
+
+	call    nxtknmbr
+	load	s4, inputb
+
+	call    rdbuff				
+	compare inputb, 20			; controleren op een spatie voor naar de volgende cijfer te gaan.
+	JUMP	NZ, mainlp
+	
+	call 	rdbuff				;y opslagen in 4 verschillende registers
+	compare inputb, 1'd
+	load 	s5	  , 1'd
+
+	call    nxtknmbr
+	load 	s6,inputb
+
+	call    nxtknmbr
+	load 	s7, inputb
+
+	call    nxtknmbr
+	load	s9, inputb
+
+	call    rdbuff
+	compare inputb, 20
+	JUMP	NZ, mainlp
+	
+	
+	call 	rdbuff				;z opslagen in 4 verschillende registers
+	compare inputb, 1'd
+	load 	sA	  , 1'd
+
+	call    nxtknmbr
+	load 	sB,inputb
+
+	call    nxtknmbr
+	load 	sC, inputb
+
+	call    nxtknmbr
+	load	sD, inputb
+
+	call    rdbuff
+	compare inputb, 20
+	JUMP	NZ, mainlp
+	
+	call    rdbuff
+	compare inputb, 0D
+	JUMP	NZ, mainlp
+	
+	call    rdbuff
+	compare inputb, 0A
+	JUMP	NZ, mainlp
+	
+	JUMP	prsarc
+
+
+
+;---------------------------------------------
+delms:              
+	input     s0, clk_ms
+delmslp:         
+	input     s1, clk_ms
+	compare   s0, s1
+	jump      z, delmslp
+	return       
+;---------------------------------------------
+del250ms:           
+	load      s2, 05
+
+del250mslp:     
+	call      delms
+	add       s2, 01
+	jump      nz, del250mslp
+	return    
+
+
+	
+	; Routine to convert binary value in the range 00 to 63 hex provided in register
+	; 's0' into the binary coded decimal (BCD) equivalent in the range 0 to 99 in
+	; registers 's1' and 's0'.
+	;
+	;   Example                        s0 = 24 hex   -->    s1 = 3
+	;   24 hex = 36 decimal                                 s0 = 6
+	;
+	;
+byte_to_decimal: 	
+	LOAD s1, 00                     ;clear 'tens'
+	
+b_to_d_loop:   
+	COMPARE s0, 10'd                ;if 'units' is less than 10
+	RETURN C                        ;  then conversion complete
+	ADD s1, 1'd                     ;otherwise increment number of 'tens'
+	SUB s0, 10'd                    ; and subtract 10 from 'units'
+	JUMP b_to_d_loop
+	
+	
+;------------------------------------------------
+rdbuff:								; gebruik maken van RS32 protocol
+	input	  sA, buffer   			; read buffer 00001000 their is something in the buffer
+	and 	  sA, 00000100'b 		;if buffer is full (wait)
+	compare   sA, 00000100'b
+	
+	jump	  z, mainlp
+
+bfrempty:							; gebruik maken van RS32 protocol
+
+	call      del250ms				;wacht tot er iets in de buffer zit vooraleer verder gegaan kan worden.
+	input 	  sB, buffer
+	and 	  sB, 00001000'b
+	compare   sB, 00001000'b;
+	
+	jump 	  nz, bfrempty
+	
+	
+	input 	inputb, rx
+	
+	return
+
+nxtknmbr:							;Er wordt een getal verwacht tussen de 0 & 10
+	call 	rdbuff
+	compare inputb, 2F				;groter dan 0
+	JUMP	C, mainlp
+	compare inputb, 3A				; kleinder dan 10
+	JUMP	NC, mainlp
+	return 							; zoniet mag het programma verder gaan.
+
+nextStap:
+	add  sE, 1'd
+	output sE, tx
+	return 
+	
+load1:
+	load 	s1	  , 1'd
+	output s1 , tx;
+	return 
+;-----------------------------------------------------
+prsarc:
+	load 	s1	  , 1'd
+	output  s1 , tx;
+	jump   mainlp
+ 

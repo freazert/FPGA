@@ -1,0 +1,1 @@
+-intstyle "ise" -incremental -lib "secureip" -o "C:/Users/Kris/Dropbox/FPGA/PROJECT/tb_servo_isim_beh.exe" -prj "C:/Users/Kris/Dropbox/FPGA/PROJECT/tb_servo_beh.prj" "work.tb_servo" 

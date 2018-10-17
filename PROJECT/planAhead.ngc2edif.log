@@ -1,0 +1,19 @@
+Release 14.4 - ngc2edif P.49d (nt64)
+Copyright (c) 1995-2012 Xilinx, Inc.  All rights reserved.
+Reading design uart6_atlys.ngc ...
+WARNING:NetListWriters:298 - No output is written to uart6_atlys.xncf, ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+WARNING:NetListWriters:306 - Signal bus
+   program_rom/instantiate_loader.jtag_loader_6_inst/jtag_addr_int[3]_GND_35_o_w
+   ide_mux_8_OUT<7 : 0> on block uart6_atlys is not reconstructed, because there
+   are some missing bus signals.
+WARNING:NetListWriters:306 - Signal bus
+   program_rom/instantiate_loader.jtag_loader_6_inst/control_dout_int<7 : 0> on
+   block uart6_atlys is not reconstructed, because there are some missing bus
+   signals.
+  finished :Prep
+Writing EDIF netlist file uart6_atlys.edif ...
+ngc2edif: Total memory usage is 76748 kilobytes
+
